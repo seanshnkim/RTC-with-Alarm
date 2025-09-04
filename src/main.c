@@ -97,6 +97,11 @@ int main(void)
     SystemClock_Config();
     MX_GPIO_Init();
     MX_USART2_UART_Init();
+    
+    // Send initial message to confirm UART is working
+    char startup_msg[] = "RTC Alarm System Started!\r\n";
+    HAL_UART_Transmit(&huart2, (uint8_t*)startup_msg, strlen(startup_msg), 1000);
+    
     MX_RTC_Init();
 
     osKernelInitialize();
@@ -136,13 +141,35 @@ void AlarmHandlerTask(void *argument) {
 
 void MX_RTC_Init(void)
 {
+    // Enable PWR and RTC clocks
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWR_EnableBkUpAccess();
+    
+    // Configure LSE as RTC clock source
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE;
+    RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+        // If LSE fails, use LSI as backup
+        RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI;
+        RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+        HAL_RCC_OscConfig(&RCC_OscInitStruct);
+        __HAL_RCC_RTC_CONFIG(RCC_RTCCLKSOURCE_LSI);
+    } else {
+        __HAL_RCC_RTC_CONFIG(RCC_RTCCLKSOURCE_LSE);
+    }
+    
     __HAL_RCC_RTC_ENABLE();
+    
     hrtc.Instance = RTC;
     hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
     hrtc.Init.AsynchPrediv = 127;
     hrtc.Init.SynchPrediv = 255;
     hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
-    HAL_RTC_Init(&hrtc);
+    
+    if (HAL_RTC_Init(&hrtc) != HAL_OK) {
+        Error_Handler();
+    }
 
     // Set time if not set yet (on initial boot, or check backup reg)
     RTC_TimeTypeDef sTime = { .Hours = 16, .Minutes = 0, .Seconds = 0 };
@@ -150,11 +177,11 @@ void MX_RTC_Init(void)
     HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
     HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
-    // Set up alarm (alarm at 16:01:00)
+    // Set up alarm (alarm at 16:00:10)
     RTC_AlarmTypeDef sAlarm = {0};
     sAlarm.AlarmTime.Hours = 16;
-    sAlarm.AlarmTime.Minutes = 1;
-    sAlarm.AlarmTime.Seconds = 0;
+    sAlarm.AlarmTime.Minutes = 0;
+    sAlarm.AlarmTime.Seconds = 5;
     sAlarm.Alarm = RTC_ALARM_A;
     sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY;
     HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BIN);
@@ -172,14 +199,33 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
 void MX_GPIO_Init(void) {
     __HAL_RCC_GPIOA_CLK_ENABLE();
     GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+    
+    // Configure PA5 for LED (User LED on Discovery board)
     GPIO_InitStruct.Pin = GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    
+    // Turn off LED initially
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
 }
 
 void MX_USART2_UART_Init(void) {
+    // Enable clocks
     __HAL_RCC_USART2_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    
+    // Configure GPIO pins for USART2 (PA2 = TX, PA3 = RX)
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_3;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    
+    // Configure UART
     huart2.Instance = USART2;
     huart2.Init.BaudRate = 115200;
     huart2.Init.WordLength = UART_WORDLENGTH_8B;
@@ -188,7 +234,10 @@ void MX_USART2_UART_Init(void) {
     huart2.Init.Mode = UART_MODE_TX_RX;
     huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-    HAL_UART_Init(&huart2);
+    
+    if (HAL_UART_Init(&huart2) != HAL_OK) {
+        Error_Handler();
+    }
 }
 
 // Error handler function
