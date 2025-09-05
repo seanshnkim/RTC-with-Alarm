@@ -95,10 +95,10 @@ void SysTick_Handler(void)
 /**
   * @brief This function handles RTC Alarms A and B interrupts through EXTI line 17.
   */
-void RTC_Alarm_IRQHandler(void)
-{
-  HAL_RTC_AlarmIRQHandler(&hrtc);
-}
+// void RTC_Alarm_IRQHandler(void)
+// {
+//   HAL_RTC_AlarmIRQHandler(&hrtc);
+// }
 
 /* USER CODE BEGIN 1 */
 
