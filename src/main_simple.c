@@ -13,32 +13,60 @@ size_t strlen(const char *s) {
     return len;
 }
 
-// Simple snprintf implementation 
-int snprintf(char *str, size_t size, const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    
-    if (size == 0) return 0;
-    
-    // Simple implementation for the specific format used in your code
-    if (format[0] == 'T' && format[1] == 'i' && format[2] == 'm' && format[3] == 'e') {
-        // Format: "Time: %02d:%02d:%02d\r\n"
-        int h = va_arg(args, int);
-        int m = va_arg(args, int);
-        int s = va_arg(args, int);
-        
-        str[0] = 'T'; str[1] = 'i'; str[2] = 'm'; str[3] = 'e'; str[4] = ':'; str[5] = ' ';
-        str[6] = '0' + (h / 10); str[7] = '0' + (h % 10); str[8] = ':';
-        str[9] = '0' + (m / 10); str[10] = '0' + (m % 10); str[11] = ':';
-        str[12] = '0' + (s / 10); str[13] = '0' + (s % 10);
-        str[14] = '\r'; str[15] = '\n'; str[16] = '\0';
-        
-        va_end(args);
-        return 16;
+// Simple number to string conversion
+void uint_to_string(uint32_t num, char *str) {
+    if (num == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return;
     }
     
-    va_end(args);
-    return 0;
+    char temp[12];
+    int i = 0;
+    
+    while (num > 0) {
+        temp[i++] = '0' + (num % 10);
+        num /= 10;
+    }
+    
+    // Reverse the string
+    int j = 0;
+    while (i > 0) {
+        str[j++] = temp[--i];
+    }
+    str[j] = '\0';
+}
+
+// Simple time formatting
+void format_time(char *buffer, int h, int m, int s) {
+    buffer[0] = 'T'; buffer[1] = 'i'; buffer[2] = 'm'; buffer[3] = 'e'; 
+    buffer[4] = ':'; buffer[5] = ' ';
+    buffer[6] = '0' + (h / 10); buffer[7] = '0' + (h % 10); buffer[8] = ':';
+    buffer[9] = '0' + (m / 10); buffer[10] = '0' + (m % 10); buffer[11] = ':';
+    buffer[12] = '0' + (s / 10); buffer[13] = '0' + (s % 10);
+    buffer[14] = '\r'; buffer[15] = '\n'; buffer[16] = '\0';
+}
+
+// Simple clock frequency formatting
+void format_clock_msg(char *buffer, uint32_t freq) {
+    char freq_str[12];
+    uint_to_string(freq, freq_str);
+    
+    // Build "SysClock: XXXXXX Hz\r\n"
+    char *msg = "SysClock: ";
+    int i = 0;
+    while (msg[i]) {
+        buffer[i] = msg[i];
+        i++;
+    }
+    
+    int j = 0;
+    while (freq_str[j]) {
+        buffer[i++] = freq_str[j++];
+    }
+    
+    buffer[i++] = ' '; buffer[i++] = 'H'; buffer[i++] = 'z';
+    buffer[i++] = '\r'; buffer[i++] = '\n'; buffer[i] = '\0';
 }
 
 RTC_HandleTypeDef hrtc;
@@ -62,7 +90,7 @@ int main(void)
     // Check actual system clock frequency
     uint32_t sysclk = HAL_RCC_GetSysClockFreq();
     char clock_msg[64];
-    snprintf(clock_msg, sizeof(clock_msg), "SysClock: %lu Hz\r\n", sysclk);
+    format_clock_msg(clock_msg, sysclk);
     HAL_UART_Transmit(&huart1, (uint8_t*)clock_msg, strlen(clock_msg), 1000);
     
     // Send initial message to confirm UART is working
@@ -92,8 +120,7 @@ int main(void)
         // Display time every second
         HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
         HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN); // Required after GetTime()
-        snprintf(msg, sizeof(msg), "Time: %02d:%02d:%02d\r\n",
-                sTime.Hours, sTime.Minutes, sTime.Seconds);
+        format_time(msg, sTime.Hours, sTime.Minutes, sTime.Seconds);
         HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 100);
         
         // Check alarm
@@ -132,17 +159,20 @@ void SystemClock_Config(void)
     RCC_OscInitStruct.PLL.PLLN = 336;
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
     RCC_OscInitStruct.PLL.PLLQ = 7;
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-    {
-        // HSE failed, let's try HSI instead
-        RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-        RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-        RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-        RCC_OscInitStruct.PLL.PLLM = 16;  // HSI = 16 MHz, divide by 16 => 1 MHz
-        if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-        {
-            Error_Handler();
-        }
+    // if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+    // {
+    //     // HSE failed, let's try HSI instead
+    //     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+    //     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+    //     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+    //     RCC_OscInitStruct.PLL.PLLM = 16;  // HSI = 16 MHz, divide by 16 => 1 MHz
+    //     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+    //     {
+    //         Error_Handler();
+    //     }
+    // }
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+        Error_Handler();
     }
 
     // Initializes the CPU, AHB and APB buses clocks
@@ -286,6 +316,6 @@ void Error_Handler(void)
     {
         // Blink LED rapidly to indicate error
         HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
-        for(volatile int i = 0; i < 1000000; i++);
+        for(volatile int i = 0; i < 100000; i++);
     }
 }
