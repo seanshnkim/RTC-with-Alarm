@@ -12,6 +12,7 @@
 #include "stm32f4xx_it.h"
 
 /* External variables --------------------------------------------------------*/
+extern RTC_HandleTypeDef hrtc;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -90,6 +91,14 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
+
+/**
+  * @brief This function handles RTC Alarms A and B interrupts through EXTI line 17.
+  */
+void RTC_Alarm_IRQHandler(void)
+{
+  HAL_RTC_AlarmIRQHandler(&hrtc);
+}
 
 /* USER CODE BEGIN 1 */
 

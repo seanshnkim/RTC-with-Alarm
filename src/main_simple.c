@@ -42,14 +42,14 @@ int snprintf(char *str, size_t size, const char *format, ...) {
 }
 
 RTC_HandleTypeDef hrtc;
-UART_HandleTypeDef huart1;  // Using UART1 instead of UART2
+UART_HandleTypeDef huart3;  // Using UART3 instead of UART1
 volatile uint8_t alarm_triggered = 0;
 volatile uint32_t tick_count = 0;
 
 void SystemClock_Config(void);
 void MX_RTC_Init(void);
 void MX_GPIO_Init(void);
-void MX_USART1_UART_Init(void);
+void MX_USART3_UART_Init(void);
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc);
 
 int main(void)
@@ -57,36 +57,54 @@ int main(void)
     HAL_Init();
     SystemClock_Config();
     MX_GPIO_Init();
-    MX_USART1_UART_Init();
+    MX_USART3_UART_Init();
+    
+    // Simple test message
+    char test_msg[] = "HELLO WORLD!\r\n";
+    HAL_UART_Transmit(&huart3, (uint8_t*)test_msg, strlen(test_msg), 1000);
     
     // Send initial message to confirm UART is working
     char startup_msg[] = "=== RTC Alarm System Started! ===\r\n";
-    HAL_UART_Transmit(&huart1, (uint8_t*)startup_msg, strlen(startup_msg), 1000);
+    HAL_UART_Transmit(&huart3, (uint8_t*)startup_msg, strlen(startup_msg), 1000);
     
     MX_RTC_Init();
     
     // Send RTC init confirmation
     char rtc_msg[] = "RTC Initialized!\r\n";
-    HAL_UART_Transmit(&huart1, (uint8_t*)rtc_msg, strlen(rtc_msg), 1000);
+    HAL_UART_Transmit(&huart3, (uint8_t*)rtc_msg, strlen(rtc_msg), 1000);
 
     // Main loop without RTOS
     RTC_TimeTypeDef sTime;
     RTC_DateTypeDef sDate;
     char msg[64];
+    uint32_t led_counter = 0;  // Counter for LED blinking
     
     while (1) {
+        // Blink LED every 2 seconds to show program is running
+        led_counter++;
+        if (led_counter >= 2) {
+            HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
+            led_counter = 0;
+        }
+        
         // Display time every second
         HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
         HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN); // Required after GetTime()
         snprintf(msg, sizeof(msg), "Time: %02d:%02d:%02d\r\n",
                 sTime.Hours, sTime.Minutes, sTime.Seconds);
-        HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 100);
+        HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), 100);
         
         // Check alarm
         if (alarm_triggered) {
             char alarm_msg[] = "*** ALARM TRIGGERED! ***\r\n";
-            HAL_UART_Transmit(&huart1, (uint8_t*)alarm_msg, strlen(alarm_msg), 1000);
-            HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13); // Green LED on Discovery board
+            HAL_UART_Transmit(&huart3, (uint8_t*)alarm_msg, strlen(alarm_msg), 1000);
+            
+            // Blink LED rapidly 5 times when alarm triggers
+            for(int i = 0; i < 10; i++) {
+                HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
+                HAL_Delay(100);
+            }
+            
             alarm_triggered = 0;
         }
         
@@ -131,32 +149,33 @@ void SystemClock_Config(void)
     }
 }
 
-void MX_USART1_UART_Init(void)
+void MX_USART3_UART_Init(void)
 {
     // Enable clocks
-    __HAL_RCC_USART1_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_USART3_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
     
-    // Configure GPIO pins for USART1 (PA9 = TX, PA10 = RX) - correct for Discovery board
+    // Configure GPIO pins for USART3 
+    // For STM32F429 Discovery: PB10 (TX) and PB11 (RX) are connected to ST-LINK VCP
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = GPIO_PIN_9 | GPIO_PIN_10;
+    GPIO_InitStruct.Pin = GPIO_PIN_10 | GPIO_PIN_11;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
     
     // Configure UART
-    huart1.Instance = USART1;
-    huart1.Init.BaudRate = 115200;
-    huart1.Init.WordLength = UART_WORDLENGTH_8B;
-    huart1.Init.StopBits = UART_STOPBITS_1;
-    huart1.Init.Parity = UART_PARITY_NONE;
-    huart1.Init.Mode = UART_MODE_TX_RX;
-    huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+    huart3.Instance = USART3;
+    huart3.Init.BaudRate = 115200;
+    huart3.Init.WordLength = UART_WORDLENGTH_8B;
+    huart3.Init.StopBits = UART_STOPBITS_1;
+    huart3.Init.Parity = UART_PARITY_NONE;
+    huart3.Init.Mode = UART_MODE_TX_RX;
+    huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart3.Init.OverSampling = UART_OVERSAMPLING_16;
     
-    if (HAL_UART_Init(&huart1) != HAL_OK)
+    if (HAL_UART_Init(&huart3) != HAL_OK)
     {
         Error_Handler();
     }
@@ -204,27 +223,40 @@ void MX_RTC_Init(void)
     
     if (HAL_RTC_Init(&hrtc) != HAL_OK)
     {
+        // Send error message if RTC init fails
+        char error_msg[] = "RTC Init Failed!\r\n";
+        HAL_UART_Transmit(&huart3, (uint8_t*)error_msg, strlen(error_msg), 1000);
         Error_Handler();
     }
+    
+    // Send success message
+    char rtc_init_msg[] = "RTC Init Success!\r\n";
+    HAL_UART_Transmit(&huart3, (uint8_t*)rtc_init_msg, strlen(rtc_init_msg), 1000);
 
     // Set initial time
-    RTC_TimeTypeDef sTime = { .Hours = 16, .Minutes = 0, .Seconds = 0 };
-    RTC_DateTypeDef sDate = { .Date = 3, .Month = RTC_MONTH_SEPTEMBER, .Year = 25 };
+    RTC_TimeTypeDef sTime = { .Hours = 10, .Minutes = 0, .Seconds = 0 };
+    RTC_DateTypeDef sDate = { .Date = 5, .Month = RTC_MONTH_SEPTEMBER, .Year = 25 };
     HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
     HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
-    // Set up alarm (alarm at 16:00:05)
+    // Set up alarm (alarm at 10:00:03 - 3 seconds after startup)
     RTC_AlarmTypeDef sAlarm = {0};
-    sAlarm.AlarmTime.Hours = 16;
+    sAlarm.AlarmTime.Hours = 10;
     sAlarm.AlarmTime.Minutes = 0;
-    sAlarm.AlarmTime.Seconds = 5;
+    sAlarm.AlarmTime.Seconds = 3;
     sAlarm.Alarm = RTC_ALARM_A;
     sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY;
     
     if (HAL_RTC_SetAlarm_IT(&hrtc, &sAlarm, RTC_FORMAT_BIN) != HAL_OK)
     {
+        char alarm_error_msg[] = "Alarm Setup Failed!\r\n";
+        HAL_UART_Transmit(&huart3, (uint8_t*)alarm_error_msg, strlen(alarm_error_msg), 1000);
         Error_Handler();
     }
+    
+    // Send alarm setup success message
+    char alarm_ok_msg[] = "Alarm Set for 10:00:03!\r\n";
+    HAL_UART_Transmit(&huart3, (uint8_t*)alarm_ok_msg, strlen(alarm_ok_msg), 1000);
     
     // Enable RTC Alarm IRQ in NVIC
     HAL_NVIC_SetPriority(RTC_Alarm_IRQn, 0, 0);
