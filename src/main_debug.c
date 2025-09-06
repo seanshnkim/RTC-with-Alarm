@@ -3,7 +3,6 @@
 #include "main.h"
 
 UART_HandleTypeDef huart1;
-uint8_t clock_source = 0; // 0 = HSE, 1 = HSI
 
 void SystemClock_Config(void);
 void MX_GPIO_Init(void);
@@ -34,25 +33,6 @@ int main(void)
     HAL_UART_Transmit(&huart1, test3, sizeof(test3)-1, 1000);
     
     while (1) {
-        // LED blink pattern depends on clock source
-        if (clock_source == 0) {
-            // HSE: fast blink (2 blinks)
-            HAL_GPIO_WritePin(GPIOG, GPIO_PIN_13, GPIO_PIN_SET);
-            HAL_Delay(100);
-            HAL_GPIO_WritePin(GPIOG, GPIO_PIN_13, GPIO_PIN_RESET);
-            HAL_Delay(100);
-            HAL_GPIO_WritePin(GPIOG, GPIO_PIN_13, GPIO_PIN_SET);
-            HAL_Delay(100);
-            HAL_GPIO_WritePin(GPIOG, GPIO_PIN_13, GPIO_PIN_RESET);
-            HAL_Delay(700);
-        } else {
-            // HSI: slow single blink
-            HAL_GPIO_WritePin(GPIOG, GPIO_PIN_13, GPIO_PIN_SET);
-            HAL_Delay(200);
-            HAL_GPIO_WritePin(GPIOG, GPIO_PIN_13, GPIO_PIN_RESET);
-            HAL_Delay(800);
-        }
-
         // Keep sending simple test
         uint8_t simple[] = "TEST\r\n";
         HAL_UART_Transmit(&huart1, simple, 6, 100);
@@ -68,15 +48,12 @@ void SystemClock_Config(void)
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-    // Force HSI only for now to eliminate HSE issues
-    clock_source = 1; // Mark as using HSI
-    
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-    RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-    RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    // RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-    RCC_OscInitStruct.PLL.PLLM = 16;  // HSI = 16 MHz, divide by 16 => 1 MHz
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLM = 25;  // HSE = 25 MHz, divide by 25 => 1 MHz
     RCC_OscInitStruct.PLL.PLLN = 336; // multiply by 336 => 336 MHz
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2; // divide by 2 => 168 MHz
     RCC_OscInitStruct.PLL.PLLQ = 7;   // 336 MHz / 7 = 48 MHz for USB
@@ -113,7 +90,7 @@ void MX_USART1_UART_Init(void)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     
     huart1.Instance = USART1;
-    huart1.Init.BaudRate = 115200;  // Much lower baud rate for slow clock
+    huart1.Init.BaudRate = 115200;
     huart1.Init.WordLength = UART_WORDLENGTH_8B;
     huart1.Init.StopBits = UART_STOPBITS_1;
     huart1.Init.Parity = UART_PARITY_NONE;
