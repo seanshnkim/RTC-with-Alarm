@@ -55,46 +55,54 @@ const uint8_t font8x8_basic[128][8] = {
  */
 void MX_LCD_GPIO_Init(void)
 {
-    // Enable GPIO clocks for all LCD pins
-    __HAL_RCC_GPIOA_CLK_ENABLE(); // For PA9 (SCK) and PA10 (MOSI)
-    __HAL_RCC_GPIOC_CLK_ENABLE(); // For PC2 (CS)
-    __HAL_RCC_GPIOD_CLK_ENABLE(); // For PD13 (DC)
-    
+    // Enable GPIO clocks for all LCD pins used on STM32F429I-Discovery
+    __HAL_RCC_GPIOF_CLK_ENABLE(); // PF7 (SCK), PF9 (MOSI), PF10 (RST)
+    __HAL_RCC_GPIOC_CLK_ENABLE(); // PC2 (CS)
+    __HAL_RCC_GPIOD_CLK_ENABLE(); // PD13 (DC)
+
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    
-    // Configure SCK pin (PA9)
+
+    // Configure SCK pin (PF7)
     GPIO_InitStruct.Pin = LCD_SCK_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(LCD_SCK_GPIO_PORT, &GPIO_InitStruct);
-    
-    // Configure MOSI pin (PA10)
+
+    // Configure MOSI pin (PF9)
     GPIO_InitStruct.Pin = LCD_MOSI_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(LCD_MOSI_GPIO_PORT, &GPIO_InitStruct);
-    
+
     // Configure CS pin (PC2)
     GPIO_InitStruct.Pin = LCD_CS_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(LCD_CS_GPIO_PORT, &GPIO_InitStruct);
-    
+
     // Configure DC pin (PD13)
     GPIO_InitStruct.Pin = LCD_DC_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(LCD_DC_GPIO_PORT, &GPIO_InitStruct);
-    
+
+    // Configure RST pin (PF10)
+    GPIO_InitStruct.Pin = LCD_RST_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(LCD_RST_GPIO_PORT, &GPIO_InitStruct);
+
     // Set initial pin states
-    HAL_GPIO_WritePin(LCD_CS_GPIO_PORT, LCD_CS_PIN, GPIO_PIN_SET);     // CS high (inactive)
-    HAL_GPIO_WritePin(LCD_DC_GPIO_PORT, LCD_DC_PIN, GPIO_PIN_SET);     // DC high
-    HAL_GPIO_WritePin(LCD_SCK_GPIO_PORT, LCD_SCK_PIN, GPIO_PIN_RESET); // SCK low
-    HAL_GPIO_WritePin(LCD_MOSI_GPIO_PORT, LCD_MOSI_PIN, GPIO_PIN_RESET); // MOSI low
+    HAL_GPIO_WritePin(LCD_CS_GPIO_PORT, LCD_CS_PIN, GPIO_PIN_SET);        // CS high (inactive)
+    HAL_GPIO_WritePin(LCD_DC_GPIO_PORT, LCD_DC_PIN, GPIO_PIN_SET);        // DC high
+    HAL_GPIO_WritePin(LCD_SCK_GPIO_PORT, LCD_SCK_PIN, GPIO_PIN_RESET);    // SCK low
+    HAL_GPIO_WritePin(LCD_MOSI_GPIO_PORT, LCD_MOSI_PIN, GPIO_PIN_RESET);  // MOSI low
+    HAL_GPIO_WritePin(LCD_RST_GPIO_PORT, LCD_RST_PIN, GPIO_PIN_SET);      // RST high
 }
 
 /**
@@ -152,9 +160,13 @@ void LCD_WriteData(uint8_t data)
  */
 void LCD_Init(void)
 {
+    // Hardware reset sequence
+    HAL_GPIO_WritePin(LCD_RST_GPIO_PORT, LCD_RST_PIN, GPIO_PIN_RESET);
+    HAL_Delay(20);
+    HAL_GPIO_WritePin(LCD_RST_GPIO_PORT, LCD_RST_PIN, GPIO_PIN_SET);
     HAL_Delay(120);
-    
-    // Software reset
+
+    // Software reset (optional but recommended)
     LCD_WriteCommand(0x01);
     HAL_Delay(120);
     

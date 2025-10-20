@@ -15,15 +15,19 @@
 #define LCD_WIDTH  240
 #define LCD_HEIGHT 320
 
-// LCD Pin definitions using manual GPIO control
-#define LCD_CS_PIN       GPIO_PIN_2   // PC2
-#define LCD_CS_GPIO_PORT GPIOC
-#define LCD_DC_PIN       GPIO_PIN_13  // PD13 
-#define LCD_DC_GPIO_PORT GPIOD
-#define LCD_SCK_PIN      GPIO_PIN_9   // PA9
-#define LCD_SCK_GPIO_PORT GPIOA
-#define LCD_MOSI_PIN     GPIO_PIN_10  // PA10
-#define LCD_MOSI_GPIO_PORT GPIOA
+// LCD Pin definitions using manual GPIO control (STM32F429I-Discovery)
+// ILI9341 is wired to SPI5 pins and control lines on the Discovery board.
+// CS  -> PC2,  DC -> PD13,  RST -> PF10,  SCK -> PF7 (SPI5_SCK),  MOSI -> PF9 (SPI5_MOSI)
+#define LCD_CS_PIN         GPIO_PIN_2
+#define LCD_CS_GPIO_PORT   GPIOC
+#define LCD_DC_PIN         GPIO_PIN_13
+#define LCD_DC_GPIO_PORT   GPIOD
+#define LCD_RST_PIN        GPIO_PIN_10
+#define LCD_RST_GPIO_PORT  GPIOF
+#define LCD_SCK_PIN        GPIO_PIN_7
+#define LCD_SCK_GPIO_PORT  GPIOF
+#define LCD_MOSI_PIN       GPIO_PIN_9
+#define LCD_MOSI_GPIO_PORT GPIOF
 
 // Colors (RGB565 format)
 #define COLOR_BLACK   0x0000

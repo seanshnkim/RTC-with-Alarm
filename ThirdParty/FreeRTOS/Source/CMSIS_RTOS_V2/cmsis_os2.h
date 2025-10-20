@@ -1,5 +1,7 @@
-/*
- * Copyright (c) 2013-2017 ARM Limited. All rights reserved.
+/* --------------------------------------------------------------------------
+ * Portions Copyright © 2017 STMicroelectronics International N.V. All rights reserved.
+ * Portions Copyright (c) 2013-2017 ARM Limited. All rights reserved.
+ * --------------------------------------------------------------------------
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -15,150 +17,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * $Date:        30. January 2017
- * $Revision:    V2.1.0
+ *      Name:    cmsis_os2.h
+ *      Purpose: CMSIS RTOS2 wrapper for FreeRTOS
  *
- * Project:      CMSIS-RTOS2 API
- * Title:        cmsis_os2.h header file
- *
- * Version 0.02
- *    Initial Proposal Phase
- * Version 0.03
- *    osKernelStart added, optional feature: main started as thread
- *    osSemaphores have standard behavior
- *    osTimerCreate replaced by osTimerNew, return type changed
- *    osMessageCreate replaced by osMessageQueueNew, return type changed
- *    osMailCreate replaced by osMemoryPoolNew, return type changed
- *    osPoolCreate replaced by osMemoryPoolNew, return type changed
- *    osMessagePut replaced by osMessageQueuePut, return type changed
- *    osMessageGet replaced by osMessageQueueGet, return type changed
- *    osMailAlloc replaced by osMemoryPoolAlloc, return type changed
- *    osMailCAlloc replaced by osMemoryPoolCalloc, return type changed
- *    osMailFree replaced by osMemoryPoolFree, return type changed
- *    osMailFlush replaced by osMessageQueueReset
- *    osMailGet replaced by osMessageQueueGet, return type changed
- *    osMailPut replaced by osMessageQueuePut, return type changed
- *    osPoolAlloc replaced by osMemoryPoolAlloc, return type changed
- *    osPoolCAlloc replaced by osMemoryPoolCalloc, return type changed
- *    osPoolFree replaced by osMemoryPoolFree, return type changed
- *    osPoolFlush replaced by osMemoryPoolDelete
- *    osDelay, osDelayUntil renamed to osDelay, osDelayUntil
- *    osTimerCall added, replaces osTimerStart, osTimerStop
- *    osTimerStart, osTimerStop: return type changed
- *    osTimerFree replaced by osTimerDelete
- *    osTimerCall replaced by osTimerStart, return type changed
- *    osThreadCreate replaced by osThreadNew, return type changed
- *    osThreadTerminate renamed to osThreadExit
- *    osThreadFree renamed to osThreadTerminate
- *    osWait replaced by osDelay, return type changed
- *    osTimerCreate replaced by osTimerNew
- *    osTimerStart, osTimerStop return type changed
- * Version 1.02
- *    Support for C++, const attribute usage
- * Version 1.03
- *    Added: osKernelSuspend, osKernelResume
- *    Added: osThreadSuspend, osThreadResume
- *    Added: osKernelGetInfo, osThreadGetInfo, osTimerGetInfo
- *    Added: osThreadGetStackSpace
- *    Added: osEventFlagsSet, osEventFlagsClear, osEventFlagsGet, osEventFlagsWait, osEventFlagsDelete
- *    Added: osDelayUntil
- *    Added: osMemoryPoolGetInfo
- *    Added: Kernel Information and Thread Information
- *    osTimerCreate renamed to osTimerNew
- *    osTimerStart, osTimerStop return type changed to osStatus_t
- *    osEventFlagsCreate renamed to osEventFlagsNew
- *    osEventFlagsCreateStatic renamed to osEventFlagsNew
- *    osEventFlagsDestroy renamed to osEventFlagsDelete
- *    osEventFlagsClearAll renamed to osEventFlagsClear
- *    osEventFlagsSetAll renamed to osEventFlagsSet
- *    osEventFlagsWaitAll renamed to osEventFlagsWait
- *    osEventFlagsWaitAny renamed to osEventFlagsWait
- *    osEventFlagsWaitEither renamed to osEventFlagsWait
- *    osEventFlagsGetAll renamed to osEventFlagsGet
- *    osEventFlagsGetAny renamed to osEventFlagsGet
- *    osEventFlagsGetEither renamed to osEventFlagsGet
- *    osThreadCreate renamed to osThreadNew
- *    osThreadGetPriority: added const to thread_id parameter
- *    osThreadSetPriority: added const to thread_id parameter
- *    osTimerStart: added const to timer_id parameter
- *    osTimerStop: added const to timer_id parameter
- *    osTimerIsRunning: added const to timer_id parameter
- *    osTimerDelete: added const to timer_id parameter
- *    osTimerGetName: added const to timer_id parameter
- * Version 2.0.0
- *    OS Objects creation without macros (dynamic creation and resource allocation):
- *      - added: osThreadDetach, osThreadJoin
- *      - added: osThreadExit, osThreadTerminate
- *      - added: osEventFlagsName
- *      - added: osEventFlagsNew, osEventFlagsDelete
- *      - added: osTimerNew, osTimerDelete
- *      - added: osMessageQueueNew, osMessageQueueDelete
- *    osFileSystem API removed (implementation moved to File System component)
- *    osMailQ API removed     (superseded by osMessageQueue and osMemoryPool)
- *    osPool API removed      (superseded by osMemoryPool)
- *    osMessageQ API removed  (superseded by osMessageQueue)
- *    osSignalSet, osSignalClear, osSignalWait removed      (superseded by osThreadFlagsSet, osThreadFlagsClear, osThreadFlagsWait)
- *    osTimer macros removed  (superseded by osTimerNew)
- *    osMessageCreate removed (superseded by osMessageQueueNew)
- *    osTimerCreate removed   (superseded by osTimerNew)
- *    ev_status removed from osEvent
- *    osOK renamed to osSttusOK
- *    osEventSignal           renamed to osThreadFlagsSet
- *    osEventWait             renamed to osThreadFlagsWait
- *    osThreadSetSignal       renamed to osThreadFlagsSet
- *    osThreadClearSignal     renamed to osThreadFlagsClear
- *    osThreadGetSignal       renamed to osThreadFlagsGet
- *    osTaskCreate            renamed to osThreadCreate
- *    osTaskGetId             renamed to osThreadGetId
- *    osTaskIdCurrent         renamed to osThreadIdCurrent
- *    osTaskIdGetCurrent      renamed to osThreadGetId
- *    osTaskGetPriority       renamed to osThreadGetPriority
- *    osTaskSetPriority       renamed to osThreadSetPriority
- *    osTaskYield             renamed to osThreadYield
- *    osTaskSuspend           renamed to osThreadSuspend
- *    osTaskResume            renamed to osThreadResume
- *    osTaskSuspendAll        renamed to osKernelSuspend
- *    osTaskResumeAll         renamed to osKernelResume
- *    osTaskList              renamed to osKernelInfoGet
- *    osTaskInfo              renamed to osThreadInfoGet
- *    osTaskStackInfo         renamed to osThreadStackInfoGet
- *    osTaskEndSchedule       renamed to osKernelDestroy
- *    osKernelStart           added return value, renamed from osKernelRunning
- *    osKernelRunning         renamed to osKernelGetState
- *    osKernelStart           added return value, renamed from osKernelRunning
- * Version 2.1.0
- *    Support for critical and uncritical sections (nesting safe):
- *    - Updated: osKernelLock, osKernelUnlock
- *    - Added: osKernelRestoreLock
- *    Changed Kernel Tick type to uint64_t:
- *    - Updated: osKernelGetTickCount, osDelayUntil
- *    Added osThreadFlags* functions:
- *    - osThreadFlagsSet, osThreadFlagsClear, osThreadFlagsGet, osThreadFlagsWait
- *    Added osEventFlags* functions (Event recorder variants):
- *    - osEventFlagsWaitAny, osEventFlagsWaitAll
- *    Added osDelayUntil function:
- *    - osDelayUntil
- *    Updated osThreadDetach and osThreadJoin functions:
- *    - osThreadDetach, osThreadJoin
- *    Updated osKernelStart function:
- *    - osKernelStart
- *    Thread creation and deletion:
- *    - osThreadNew, osThreadTerminate, osThreadDetach, osThreadJoin, osThreadExit
- *    Added osKernelInfo, osThreadInfo functions:
- *    - osKernelGetInfo, osThreadGetInfo, osThreadGetStackSpace, osThreadGetStackSize
- *    Added Memory Pool functions:
- *    - osMemoryPoolNew, osMemoryPoolGetName, osMemoryPoolAlloc, osMemoryPoolFree, osMemoryPoolGetCapacity, osMemoryPoolGetBlockSize, osMemoryPoolGetCount, osMemoryPoolGetSpace, osMemoryPoolDelete
- *    Added Message Queue functions:
- *    - osMessageQueueNew, osMessageQueueGetName, osMessageQueuePut, osMessageQueueGet, osMessageQueueGetCapacity, osMessageQueueGetMsgSize, osMessageQueueGetCount, osMessageQueueGetSpace, osMessageQueueReset, osMessageQueueDelete
- *    Added Event Flags functions:
- *    - osEventFlagsNew, osEventFlagsGetName, osEventFlagsSet, osEventFlagsClear, osEventFlagsGet, osEventFlagsWait, osEventFlagsDelete
- *    Added Timer functions:
- *    - osTimerNew, osTimerGetName, osTimerStart, osTimerStop, osTimerIsRunning, osTimerDelete
- *    Added Mutex functions:
- *    - osMutexNew, osMutexGetName, osMutexAcquire, osMutexRelease, osMutexGetOwner, osMutexDelete
- *    Added Semaphore functions:
- *    - osSemaphoreNew, osSemaphoreGetName, osSemaphoreAcquire, osSemaphoreRelease, osSemaphoreGetCount, osSemaphoreDelete
- */
+ *---------------------------------------------------------------------------*/
 
 #ifndef CMSIS_OS2_H_
 #define CMSIS_OS2_H_
@@ -213,7 +75,7 @@ typedef enum {
   osThreadBlocked         =  3,         ///< Blocked.
   osThreadTerminated      =  4,         ///< Terminated.
   osThreadError           = -1,         ///< Error.
-  osThreadReserved        = 0x7FFFFFFFU ///< Prevents enum down-size compiler optimization.
+  osThreadReserved        = 0x7FFFFFFF  ///< Prevents enum down-size compiler optimization.
 } osThreadState_t;
 
 /// Priority values.
@@ -270,7 +132,7 @@ typedef enum {
   osPriorityRealtime7     = 48+7,       ///< Priority: realtime + 7
   osPriorityISR           = 56,         ///< Reserved for ISR deferred thread.
   osPriorityError         = -1,         ///< System cannot determine priority or illegal priority.
-  osPriorityReserved      = 0x7FFFFFFFU ///< Prevents enum down-size compiler optimization.
+  osPriorityReserved      = 0x7FFFFFFF  ///< Prevents enum down-size compiler optimization.
 } osPriority_t;
 
 /// Entry point of a thread.
@@ -281,8 +143,8 @@ typedef void (*osTimerFunc_t) (void *argument);
 
 /// Timer type.
 typedef enum {
-  osTimerOnce             = 0,          ///< One-shot timer.
-  osTimerPeriodic         = 1           ///< Repeating timer.
+  osTimerOnce               = 0,          ///< One-shot timer.
+  osTimerPeriodic           = 1           ///< Repeating timer.
 } osTimerType_t;
 
 // Timeout value.
@@ -302,8 +164,8 @@ typedef enum {
 #define osFlagsErrorISR       0xFFFFFFFAU ///< osErrorISR (-6).
 
 // Thread attributes (attr_bits in \ref osThreadAttr_t).
-#define osThreadDetached      0x00000000U ///< Thread created in detached mode (default).
-#define osThreadJoinable      0x00000001U ///< Thread created in joinable mode.
+#define osThreadDetached      0x00000000U ///< Thread created in detached mode (default)
+#define osThreadJoinable      0x00000001U ///< Thread created in joinable mode
 
 // Mutex attributes (attr_bits in \ref osMutexAttr_t).
 #define osMutexRecursive      0x00000001U ///< Recursive mutex.
@@ -312,15 +174,16 @@ typedef enum {
 
 /// Status code values returned by CMSIS-RTOS functions.
 typedef enum {
-  osOK                    =  0,         ///< Operation completed successfully.
-  osError                 = -1,         ///< Unspecified RTOS error: run-time error but no other error message fits.
-  osErrorTimeout          = -2,         ///< Operation not completed within the timeout period.
-  osErrorResource         = -3,         ///< Resource not available.
-  osErrorParameter        = -4,         ///< Parameter error.
-  osErrorNoMemory         = -5,         ///< System is out of memory: it was impossible to allocate or reserve memory for the operation.
-  osErrorISR              = -6,         ///< Not allowed in ISR context: the function cannot be called from interrupt service routines.
-  osStatusReserved        = 0x7FFFFFFFU ///< Prevents enum down-size compiler optimization.
+  osOK                      =  0,         ///< Operation completed successfully.
+  osError                   = -1,         ///< Unspecified RTOS error: run-time error but no other error message fits.
+  osErrorTimeout            = -2,         ///< Operation not completed within the timeout period.
+  osErrorResource           = -3,         ///< Resource not available.
+  osErrorParameter          = -4,         ///< Parameter error.
+  osErrorNoMemory           = -5,         ///< System is out of memory: it was impossible to allocate or reserve memory for the operation.
+  osErrorISR                = -6,         ///< Not allowed in ISR context: the function cannot be called from interrupt service routines.
+  osStatusReserved          = 0x7FFFFFFF  ///< Prevents enum down-size compiler optimization.
 } osStatus_t;
+
 
 /// \details Thread ID identifies the thread.
 typedef void *osThreadId_t;
@@ -343,11 +206,13 @@ typedef void *osMemoryPoolId_t;
 /// \details Message Queue ID identifies the message queue.
 typedef void *osMessageQueueId_t;
 
+
 #ifndef TZ_MODULEID_T
 #define TZ_MODULEID_T
 /// \details Data type that identifies secure software modules called by a process.
 typedef uint32_t TZ_ModuleId_t;
 #endif
+
 
 /// Attributes structure for thread.
 typedef struct {
@@ -459,7 +324,7 @@ void osKernelResume (uint32_t sleep_ticks);
 
 /// Get the RTOS kernel tick count.
 /// \return RTOS kernel current tick count.
-uint64_t osKernelGetTickCount (void);
+uint32_t osKernelGetTickCount (void);
 
 /// Get the RTOS kernel tick frequency.
 /// \return frequency of the kernel tick in hertz, i.e. kernel ticks per second.
@@ -485,7 +350,7 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
 
 /// Get name of a thread.
 /// \param[in]     thread_id     thread ID obtained by \ref osThreadNew or \ref osThreadGetId.
-/// \return name as null-terminated string.
+/// \return name as NULL terminated string.
 const char *osThreadGetName (osThreadId_t thread_id);
 
 /// Return the thread ID of the current running thread.
@@ -596,7 +461,7 @@ osStatus_t osDelay (uint32_t ticks);
 /// Wait until specified time.
 /// \param[in]     ticks         absolute time in ticks
 /// \return status code that indicates the execution status of the function.
-osStatus_t osDelayUntil (uint64_t ticks);
+osStatus_t osDelayUntil (uint32_t ticks);
 
 
 //  ==== Timer Management Functions ====
@@ -611,7 +476,7 @@ osTimerId_t osTimerNew (osTimerFunc_t func, osTimerType_t type, void *argument, 
 
 /// Get name of a timer.
 /// \param[in]     timer_id      timer ID obtained by \ref osTimerNew.
-/// \return name as null-terminated string.
+/// \return name as NULL terminated string.
 const char *osTimerGetName (osTimerId_t timer_id);
 
 /// Start or restart a timer.
@@ -645,7 +510,7 @@ osEventFlagsId_t osEventFlagsNew (const osEventFlagsAttr_t *attr);
 
 /// Get name of an Event Flags object.
 /// \param[in]     ef_id         event flags ID obtained by \ref osEventFlagsNew.
-/// \return name as null-terminated string.
+/// \return name as NULL terminated string.
 const char *osEventFlagsGetName (osEventFlagsId_t ef_id);
 
 /// Set the specified Event Flags.
@@ -688,7 +553,7 @@ osMutexId_t osMutexNew (const osMutexAttr_t *attr);
 
 /// Get name of a Mutex object.
 /// \param[in]     mutex_id      mutex ID obtained by \ref osMutexNew.
-/// \return name as null-terminated string.
+/// \return name as NULL terminated string.
 const char *osMutexGetName (osMutexId_t mutex_id);
 
 /// Acquire a Mutex or timeout if it is locked.
@@ -724,7 +589,7 @@ osSemaphoreId_t osSemaphoreNew (uint32_t max_count, uint32_t initial_count, cons
 
 /// Get name of a Semaphore object.
 /// \param[in]     semaphore_id  semaphore ID obtained by \ref osSemaphoreNew.
-/// \return name as null-terminated string.
+/// \return name as NULL terminated string.
 const char *osSemaphoreGetName (osSemaphoreId_t semaphore_id);
 
 /// Acquire a Semaphore token or timeout if no tokens are available.
@@ -733,14 +598,14 @@ const char *osSemaphoreGetName (osSemaphoreId_t semaphore_id);
 /// \return status code that indicates the execution status of the function.
 osStatus_t osSemaphoreAcquire (osSemaphoreId_t semaphore_id, uint32_t timeout);
 
-/// Release a Semaphore token that was acquired by \ref osSemaphoreAcquire.
+/// Release a Semaphore token up to the initial maximum count.
 /// \param[in]     semaphore_id  semaphore ID obtained by \ref osSemaphoreNew.
 /// \return status code that indicates the execution status of the function.
 osStatus_t osSemaphoreRelease (osSemaphoreId_t semaphore_id);
 
-/// Get current number of tokens in a Semaphore object.
+/// Get current Semaphore token count.
 /// \param[in]     semaphore_id  semaphore ID obtained by \ref osSemaphoreNew.
-/// \return number of tokens.
+/// \return number of tokens available.
 uint32_t osSemaphoreGetCount (osSemaphoreId_t semaphore_id);
 
 /// Delete a Semaphore object.
@@ -760,7 +625,7 @@ osMemoryPoolId_t osMemoryPoolNew (uint32_t block_count, uint32_t block_size, con
 
 /// Get name of a Memory Pool object.
 /// \param[in]     mp_id         memory pool ID obtained by \ref osMemoryPoolNew.
-/// \return name as null-terminated string.
+/// \return name as NULL terminated string.
 const char *osMemoryPoolGetName (osMemoryPoolId_t mp_id);
 
 /// Allocate a memory block from a Memory Pool.
@@ -768,12 +633,6 @@ const char *osMemoryPoolGetName (osMemoryPoolId_t mp_id);
 /// \param[in]     timeout       \ref CMSIS_RTOS_TimeOutValue or 0 in case of no time-out.
 /// \return address of the allocated memory block or NULL in case of no memory is available.
 void *osMemoryPoolAlloc (osMemoryPoolId_t mp_id, uint32_t timeout);
-
-/// Allocate a memory block from a Memory Pool and set memory block to zero.
-/// \param[in]     mp_id         memory pool ID obtained by \ref osMemoryPoolNew.
-/// \param[in]     timeout       \ref CMSIS_RTOS_TimeOutValue or 0 in case of no time-out.
-/// \return address of the allocated memory block or NULL in case of no memory is available.
-void *osMemoryPoolCalloc (osMemoryPoolId_t mp_id, uint32_t timeout);
 
 /// Return an allocated memory block back to a Memory Pool.
 /// \param[in]     mp_id         memory pool ID obtained by \ref osMemoryPoolNew.
@@ -810,7 +669,7 @@ osStatus_t osMemoryPoolDelete (osMemoryPoolId_t mp_id);
 //  ==== Message Queue Management Functions ====
 
 /// Create and Initialize a Message Queue object.
-/// \param[in]     msg_count     maximum number of messages in message queue.
+/// \param[in]     msg_count     maximum number of messages in queue.
 /// \param[in]     msg_size      maximum message size in bytes.
 /// \param[in]     attr          message queue attributes; NULL: default values.
 /// \return message queue ID for reference by other functions or NULL in case of error.
@@ -818,7 +677,7 @@ osMessageQueueId_t osMessageQueueNew (uint32_t msg_count, uint32_t msg_size, con
 
 /// Get name of a Message Queue object.
 /// \param[in]     mq_id         message queue ID obtained by \ref osMessageQueueNew.
-/// \return name as null-terminated string.
+/// \return name as NULL terminated string.
 const char *osMessageQueueGetName (osMessageQueueId_t mq_id);
 
 /// Put a Message into a Queue or timeout if Queue is full.
@@ -842,7 +701,7 @@ osStatus_t osMessageQueueGet (osMessageQueueId_t mq_id, void *msg_ptr, uint8_t *
 /// \return maximum number of messages.
 uint32_t osMessageQueueGetCapacity (osMessageQueueId_t mq_id);
 
-/// Get maximum message size in a Message Queue.
+/// Get maximum message size in a Memory Pool.
 /// \param[in]     mq_id         message queue ID obtained by \ref osMessageQueueNew.
 /// \return maximum message size in bytes.
 uint32_t osMessageQueueGetMsgSize (osMessageQueueId_t mq_id);
