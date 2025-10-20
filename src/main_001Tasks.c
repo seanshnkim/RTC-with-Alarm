@@ -122,7 +122,9 @@ int main(void)
   //Enable the CYCCNT counter.
   DWT_CTRL |= ( 1 << 0);
 
-  status = xTaskCreate(task1_handler, "Task-1", 200, "Hello world from Task-1", 2, &task1_handle);
+  // Create tasks with DIFFERENT priorities to prevent LCD interference
+  // Higher priority task will complete LCD updates without interruption
+  status = xTaskCreate(task1_handler, "Task-1", 200, "Hello world from Task-1", 3, &task1_handle);
 
   configASSERT(status == pdPASS);
 
@@ -360,26 +362,36 @@ static void task1_handler(void* parameters)
 {
 	char msg[100];
 	uint16_t counter = 0;
+	const uint8_t max_iterations = 5; // Run for 5 seconds (5 iterations × 1 second)
 
-	while(1)
+	while(counter < max_iterations)
 	{
 		snprintf(msg, 100, "%s [%d]", (char*)parameters, counter++);
 		LCD_PrintTask(10, task1_y_pos, msg, COLOR_GREEN);
 		vTaskDelay(pdMS_TO_TICKS(1000)); // Delay 1 second
 	}
+	
+	// Task completed - display final message
+	LCD_DrawString(10, task1_y_pos, "Task-1 Complete    ", COLOR_GREEN, COLOR_BLACK);
+	vTaskDelete(NULL); // Delete this task
 }
 
 static void task2_handler(void* parameters)
 {
 	char msg[100];
 	uint16_t counter = 0;
+	const uint8_t max_iterations = 4; // Run for ~6 seconds (4 iterations × 1.5 seconds)
 	
-	while(1)
+	while(counter < max_iterations)
 	{
 		snprintf(msg, 100, "%s [%d]", (char*)parameters, counter++);
 		LCD_PrintTask(10, task2_y_pos, msg, COLOR_CYAN);
 		vTaskDelay(pdMS_TO_TICKS(1500)); // Delay 1.5 seconds
 	}
+	
+	// Task completed - display final message
+	LCD_DrawString(10, task2_y_pos, "Task-2 Complete    ", COLOR_CYAN, COLOR_BLACK);
+	vTaskDelete(NULL); // Delete this task
 }
 
 
